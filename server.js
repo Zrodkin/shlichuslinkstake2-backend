@@ -47,6 +47,9 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Static file serving for uploads
+app.use('/uploads', express.static('uploads'));
+
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI)
@@ -59,10 +62,14 @@ mongoose.connect(MONGO_URI)
 // Import routes
 const authRoutes = require("./routes/auth");
 const listingRoutes = require("./routes/listings");
+const messageRoutes = require("./routes/messages");
+const applicationRoutes = require("./routes/applications");
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/applications", applicationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

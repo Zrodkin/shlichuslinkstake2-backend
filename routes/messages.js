@@ -1,21 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Message = require("../models/Message");
-const jwt = require("jsonwebtoken");
-
-// Middleware to check JWT
-function auth(req, res, next) {
-  const token = req.header("Authorization");
-  if (!token) return res.status(401).json({ msg: "No token, access denied" });
-
-  try {
-    const decoded = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(400).json({ msg: "Token is not valid" });
-  }
-}
+const auth = require("../middleware/auth"); // Import the centralized auth middleware
 
 // 🔵 1. GET all message board messages
 router.get("/board", async (req, res) => {
