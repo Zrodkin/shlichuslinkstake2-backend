@@ -11,10 +11,13 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/messages", require("./routes/messages"));
+app.use("/api/messages", require("./routes/messages"));       // ✅ Combined board + private messages
+app.use("/api/listings", require("./routes/listings"));
+app.use("/api/applications", require("./routes/applications")); // ✅ Applications route
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB error:", err));
 
