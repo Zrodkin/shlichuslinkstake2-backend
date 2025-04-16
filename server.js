@@ -5,24 +5,22 @@ require("dotenv").config();
 
 const app = express();
 
-// ✅ Dynamic CORS with regex
+// ✅ Use simple static CORS config with wildcard for all Vercel subdomains
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://shlichuslinkstake2-frontend.vercel.app", // optional fixed prod URL
+];
+
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000",
-    ];
-
-    const isAllowed =
-      !origin ||
-      allowedOrigins.includes(origin) ||
-      /\.vercel\.app$/.test(origin); // ✅ allow any Vercel subdomain
-
-    if (isAllowed) {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
 
@@ -40,6 +38,6 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB error:", err));
 
-// Start the server
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
