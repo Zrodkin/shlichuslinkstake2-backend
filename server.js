@@ -5,8 +5,15 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ✅ Configure CORS for Vercel and local dev
+app.use(cors({
+  origin: [
+    "http://localhost:3000", // for local dev
+    "https://shlichuslinkstake2-frontend-1kbz48taj.vercel.app", // for Vercel prod
+  ],
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Routes
