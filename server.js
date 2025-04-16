@@ -18,16 +18,14 @@ app.use((req, res, next) => {
 const allowedOrigins = [
   "http://localhost:3000",
   /^https:\/\/.*\.vercel\.app$/,
-  "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app" // Your specific Vercel URL
+  "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app" 
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // For debugging
     console.log('Request origin:', origin);
     
     if (!origin || allowedOrigins.some(o => (typeof o === 'string' ? o === origin : o.test(origin)))) {
-      // Log success
       console.log('✅ CORS allowed for:', origin);
       callback(null, true);
     } else {
@@ -40,7 +38,6 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Add explicit OPTIONS handling for preflight requests
 app.options('*', cors());
 
 // Body parsing middleware
@@ -59,21 +56,51 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
-// Import routes
-const authRoutes = require("./routes/auth");
-const listingRoutes = require("./routes/listings");
-const messageRoutes = require("./routes/messages");
-const applicationRoutes = require("./routes/applications");
+// Import and use routes with error trapping
+try {
+  console.log("Loading auth routes...");
+  const authRoutes = require("./routes/auth");
+  app.use("/api/auth", authRoutes);
+  console.log("Auth routes loaded successfully!");
+} catch (error) {
+  console.error("Error loading auth routes:", error);
+}
 
-// Use routes
-app.use("/api/auth", authRoutes);
-app.use("/api/listings", listingRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/applications", applicationRoutes);
+try {
+  console.log("Loading listing routes...");
+  const listingRoutes = require("./routes/listings");
+  app.use("/api/listings", listingRoutes);
+  console.log("Listing routes loaded successfully!");
+} catch (error) {
+  console.error("Error loading listing routes:", error);
+}
+
+try {
+  console.log("Loading message routes...");
+  const messageRoutes = require("./routes/messages");
+  app.use("/api/messages", messageRoutes);
+  console.log("Message routes loaded successfully!");
+} catch (error) {
+  console.error("Error loading message routes:", error);
+}
+
+try {
+  console.log("Loading application routes...");
+  const applicationRoutes = require("./routes/applications");
+  app.use("/api/applications", applicationRoutes);
+  console.log("Application routes loaded successfully!");
+} catch (error) {
+  console.error("Error loading application routes:", error);
+}
+
+// Simple route to check if server is running
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("ERROR CAUGHT BY MIDDLEWARE:", err.stack);
   res.status(500).json({
     success: false,
     message: "Internal Server Error",
