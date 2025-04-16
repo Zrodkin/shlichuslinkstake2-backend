@@ -5,12 +5,24 @@ require("dotenv").config();
 
 const app = express();
 
-// ✅ Configure CORS for Vercel and local dev
+// ✅ Dynamic CORS with regex
 app.use(cors({
-  origin: [
-    "http://localhost:3000", // for local dev
-    "https://shlichuslinkstake2-frontend-1kbz48taj.vercel.app", // for Vercel prod
-  ],
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "http://localhost:3000",
+    ];
+
+    const isAllowed =
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin); // ✅ allow any Vercel subdomain
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 
@@ -18,9 +30,9 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/messages", require("./routes/messages"));       // ✅ Combined board + private messages
+app.use("/api/messages", require("./routes/messages"));
 app.use("/api/listings", require("./routes/listings"));
-app.use("/api/applications", require("./routes/applications")); // ✅ Applications route
+app.use("/api/applications", require("./routes/applications"));
 
 // Connect to MongoDB
 mongoose
