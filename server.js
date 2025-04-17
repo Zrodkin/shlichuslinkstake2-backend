@@ -17,15 +17,22 @@ app.use((req, res, next) => {
 // CORS Configuration
 const allowedOrigins = [
   "http://localhost:3000",
-  /^https:\/\/.*\.vercel\.app$/,
-  "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app" 
+  "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // For debugging - keep this
     console.log('Request origin:', origin);
     
-    if (!origin || allowedOrigins.some(o => (typeof o === 'string' ? o === origin : o.test(origin)))) {
+    // Simplify the matching logic
+    if (!origin) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      callback(null, true);
+      return;
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
       console.log('✅ CORS allowed for:', origin);
       callback(null, true);
     } else {
@@ -38,6 +45,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
+// Handle preflight requests
 app.options('*', cors());
 
 // Body parsing middleware
