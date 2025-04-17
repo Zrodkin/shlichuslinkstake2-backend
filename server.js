@@ -23,12 +23,17 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://shlichuslinkstake2-frontend.vercel.app",
   "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app",
-  "https://shlichuslinkstake2-frontend-1k3wmumi2.vercel.app"
+  "https://shlichuslinkstake2-frontend-1k3wmumi2.vercel.app",
+  "https://shlichuslinkstake2-frontend-8hhrhynv8.vercel.app" // Added your current deployment URL
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log("Request origin:", origin);
     const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
+    console.log("Is allowed by explicit list:", allowedOrigins.includes(origin));
+    console.log("Is allowed by .vercel.app check:", typeof origin === "string" && origin.endsWith(".vercel.app"));
+    
     if (!origin || allowed) {
       console.log("✅ CORS allowed for:", origin);
       callback(null, true);
