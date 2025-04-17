@@ -1,97 +1,104 @@
 const express = require("express");
 const router = express.Router();
-const Message = require("../models/Message");
-const auth = require("../middleware/auth"); // Import the centralized auth middleware
+const Listing = require("../models/Listing");
+const authMiddleware = require("../middleware/auth");
+const upload = require("../middleware/upload"); // Multer for image upload
 
-// 🔵 1. GET all message board messages
-router.get("/board", async (req, res) => {
+// GET listings created by the current organization
+router.get("/mine", authMiddleware, async (req, res) => {
   try {
-    const messages = await Message.find({ text: { $exists: true } })
-      .populate("postedBy", "email")
-      .sort({ createdAt: -1 });
-    res.json(messages);
+    const listings = await Listing.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
+    res.json(listings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error fetching organization listings:", err);
+    res.status(500).json({ error: "Server error while fetching your listings." });
   }
 });
 
-// 🔵 2. POST message board message (text)
-router.post("/board", auth, async (req, res) => {
+// POST a new listing with optional image upload
+router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
   try {
-    const message = new Message({
-      text: req.body.text,
-      postedBy: req.user.id,
-    });
-    await message.save();
-    res.status(201).json(message);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    if (!req.is("multipart/form-data")) {
+      return res.status(415).json({ msg: "Content-Type must be multipart/form-data" });
+    }
 
-// 🟢 3. GET personal messages sent to logged-in user + unread count
-router.get("/", auth, async (req, res) => {
-  try {
-    const messages = await Message.find({ to: req.user.id })
-      .populate("from", "email")
-      .populate("listing", "jobTitle")
-      .sort({ createdAt: -1 });
+    const { jobTitle, description, location, volunteerGender, startDate, endDate } = req.body;
 
-    const unreadCount = messages.filter((m) => !m.read).length;
-
-    res.json({ messages, unreadCount });
-  } catch (err) {
-    console.error("❌ Failed to fetch messages:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// 🟢 4. POST private message
-router.post("/", auth, async (req, res) => {
-  try {
-    const { to, listing, content } = req.body;
-
-    const message = new Message({
-      from: req.user.id,
-      to,
-      listing,
-      content,
+    const listing = new Listing({
+      jobTitle,
+      description,
+      location,
+      volunteerGender,
+      startDate,
+      endDate,
+      createdBy: req.user.id,
+      imageUrl: req.file ? `/uploads/${req.file.filename}` : "",
     });
 
-    await message.save();
-    res.status(201).json({ msg: "Message sent successfully" });
+    await listing.save();
+    res.status(201).json(listing);
   } catch (err) {
-    console.error("❌ Failed to send message:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("❌ Error creating listing:", err);
+    res.status(400).json({ error: "Error creating listing. Please check your input." });
   }
 });
 
-// ✅ 5. PATCH to mark message as read
-router.patch("/:id/read", auth, async (req, res) => {
+// GET all listings (with optional gender filter)
+router.get("/", async (req, res) => {
   try {
-    const message = await Message.findOneAndUpdate(
-      { _id: req.params.id, to: req.user.id },
-      { read: true },
-      { new: true }
-    );
-    if (!message) return res.status(404).json({ error: "Message not found or unauthorized." });
-    res.json(message);
+    const filter = {};
+    if (req.query.volunteerGender) {
+      filter.volunteerGender = req.query.volunteerGender;
+    }
+
+    const listings = await Listing.find(filter).sort({ createdAt: -1 });
+    res.json(listings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error fetching listings:", err);
+    res.status(500).json({ error: "Server error while fetching listings." });
   }
 });
 
-// ✅ 6. DELETE a message
-router.delete("/:id", auth, async (req, res) => {
+// DELETE a listing by ID (only by creator)
+router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const message = await Message.findOneAndDelete({
-      _id: req.params.id,
-      to: req.user.id,
-    });
-    if (!message) return res.status(404).json({ error: "Message not found or unauthorized." });
-    res.json({ msg: "Message deleted" });
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
+
+    if (listing.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized to delete this listing" });
+    }
+
+    await Listing.findByIdAndDelete(req.params.id);
+    res.json({ msg: "Listing deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error deleting listing:", err);
+    res.status(500).json({ error: "Server error while deleting listing." });
+  }
+});
+
+// UPDATE a listing by ID (only by creator)
+router.put("/:id", authMiddleware, async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
+
+    if (listing.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized to update this listing" });
+    }
+
+    const allowedFields = ["jobTitle", "description", "location", "volunteerGender", "startDate", "endDate"];
+    const updates = {};
+
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    const updated = await Listing.findByIdAndUpdate(req.params.id, updates, { new: true });
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ Error updating listing:", err);
+    res.status(500).json({ error: "Server error while updating listing." });
   }
 });
 

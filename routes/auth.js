@@ -3,13 +3,24 @@ const router = express.Router();
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const validator = require("validator");
 
-// Signup
+// Signup Route
 router.post("/signup", async (req, res) => {
   const { email, password, role } = req.body;
 
+  // Content-Type check
+  if (req.headers["content-type"] !== "application/json") {
+    return res.status(415).json({ msg: "Content-Type must be application/json" });
+  }
+
+  // Field validation
   if (!email || !password || !role) {
     return res.status(400).json({ msg: "Please enter all fields including role." });
+  }
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ msg: "Invalid email format." });
   }
 
   if (!["organization", "male", "female"].includes(role)) {
@@ -24,9 +35,11 @@ router.post("/signup", async (req, res) => {
     const newUser = new User({ email, password: hashedPassword, role });
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.status(201).json({
       token,
@@ -37,13 +50,19 @@ router.post("/signup", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Signup error:", err);
+    res.status(500).json({ error: "Server error during signup." });
   }
 });
 
-// Login
+// Login Route
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+
+  // Content-Type check
+  if (req.headers["content-type"] !== "application/json") {
+    return res.status(415).json({ msg: "Content-Type must be application/json" });
+  }
 
   try {
     const user = await User.findOne({ email });
@@ -52,9 +71,11 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.json({
       token,
@@ -65,7 +86,8 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error during login." });
   }
 });
 
