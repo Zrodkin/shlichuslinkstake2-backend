@@ -67,6 +67,23 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
+  // Explicitly handle OPTIONS preflight for /auth/*
+app.options("/auth/*", cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+      if (allowed) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  }));
+  
+
 // === Routes ===
 const authRoutes = require("./routes/auth");
 app.use("/auth", authRoutes);
