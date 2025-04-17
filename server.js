@@ -22,22 +22,25 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // For debugging - keep this
     console.log('Request origin:', origin);
-    
-    // Simplify the matching logic
+
     if (!origin) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      callback(null, true);
-      return;
+      // Allow requests with no origin (like mobile apps or curl)
+      return callback(null, true);
     }
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
-      console.log('✅ CORS allowed for:', origin);
-      callback(null, true);
-    } else {
-      console.error("❌ Blocked by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
+
+    try {
+      const allowed = allowedOrigins.includes(origin) || (typeof origin === 'string' && origin.endsWith('.vercel.app'));
+      if (allowed) {
+        console.log('✅ CORS allowed for:', origin);
+        callback(null, true);
+      } else {
+        console.error("❌ Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    } catch (err) {
+      console.error("🔥 CORS validation error:", err.message);
+      callback(new Error("CORS error"));
     }
   },
   credentials: true,
@@ -68,7 +71,7 @@ mongoose.connect(MONGO_URI)
 try {
   console.log("Loading auth routes...");
   const authRoutes = require("./routes/auth");
-  app.use("/api/auth", authRoutes);
+  app.use("/auth", authRoutes);
   console.log("Auth routes loaded successfully!");
 } catch (error) {
   console.error("Error loading auth routes:", error);
