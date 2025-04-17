@@ -18,6 +18,7 @@ app.use((req, res, next) => {
 const allowedOrigins = [
   "http://localhost:3000",
   "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app",
+  "https://shlichuslinkstake2-frontend.vercel.app", // Added this specific domain
   /\.vercel\.app$/  // Simplified regex to avoid path-to-regexp errors
 ];
 
@@ -75,7 +76,7 @@ try {
   const applicationRoutes = require("./routes/applications");
 
   // Use routes
-  app.use("/api/auth", authRoutes);
+  app.use("/auth", authRoutes); // Changed from "/api/auth" to "/auth" to match frontend
   app.use("/api/listings", listingRoutes);
   app.use("/api/messages", messageRoutes);
   app.use("/api/applications", applicationRoutes);
