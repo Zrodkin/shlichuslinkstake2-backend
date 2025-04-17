@@ -14,12 +14,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS Configuration - Simplified but still robust
+// CORS Configuration - Without regex that causes path-to-regexp errors
 const allowedOrigins = [
   "http://localhost:3000",
   "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app",
-  "https://shlichuslinkstake2-frontend.vercel.app", // Added this specific domain
-  /\.vercel\.app$/  // Simplified regex to avoid path-to-regexp errors
+  "https://shlichuslinkstake2-frontend.vercel.app"
 ];
 
 app.use(cors({
@@ -27,14 +26,12 @@ app.use(cors({
     // For debugging
     console.log('Request origin:', origin);
     
-    if (!origin || allowedOrigins.some(o => {
-      if (typeof o === 'string') {
-        return o === origin;
-      } else if (o instanceof RegExp) {
-        return o.test(origin);
-      }
-      return false;
-    })) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       // Log success
       console.log('✅ CORS allowed for:', origin);
       callback(null, true);
