@@ -12,6 +12,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// === Debug header to test reachability ===
+app.use((req, res, next) => {
+  res.setHeader("X-CORS-Debug", "Middleware reached");
+  next();
+});
+
 // === CORS configuration ===
 const allowedOrigins = [
   "http://localhost:3000",
@@ -22,9 +28,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow non-browser clients like curl/postman
-    const allowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
-    if (allowed) {
+    const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
+    if (!origin || allowed) {
       console.log("✅ CORS allowed for:", origin);
       callback(null, true);
     } else {
@@ -37,23 +42,43 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
+// === Handle all preflight OPTIONS requests ===
 app.options("*", cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const allowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
-    if (allowed) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
+    const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
+    if (!origin || allowed) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
- // handle preflight
 
-// === Middleware ===
+// === Explicitly handle preflight OPTIONS for /auth/* ===
+app.options("/auth/*", cors({
+  origin: function (origin, callback) {
+    const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
+    if (!origin || allowed) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+// === EXPLICIT: Handle OPTIONS for /auth/login ===
+app.options("/auth/login", cors({
+  origin: function (origin, callback) {
+    const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
+    if (!origin || allowed) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+// === Express middleware ===
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
@@ -66,23 +91,6 @@ mongoose.connect(MONGO_URI)
     console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
-
-  // Explicitly handle OPTIONS preflight for /auth/*
-app.options("/auth/*", cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      const allowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
-      if (allowed) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  }));
-  
 
 // === Routes ===
 const authRoutes = require("./routes/auth");
@@ -104,7 +112,7 @@ app.get("/", (req, res) => {
 
 // === Global error handler ===
 app.use((err, req, res, next) => {
-  console.error("❌ ERROR CAUGHT BY MIDDLEWARE:", err.stack);
+  console.error("❌ ERROR CAUGHT BY MIDDLEWARE:", err.stack || err);
   res.status(500).json({
     success: false,
     message: "Internal Server Error",
