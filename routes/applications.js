@@ -13,7 +13,9 @@ router.post("/", auth, async (req, res) => {
 
     // Prevent duplicate applications
     const existing = await Application.findOne({ user: userId, listing: listingId });
-    if (existing) return res.status(400).json({ error: "You already applied to this listing." });
+    if (existing) {
+      return res.status(400).json({ error: "You already applied to this listing." });
+    }
 
     // Save application
     const application = new Application({ user: userId, listing: listingId });
@@ -21,7 +23,9 @@ router.post("/", auth, async (req, res) => {
 
     // Get the listing and its creator
     const listing = await Listing.findById(listingId).populate("createdBy", "email");
-    if (!listing) return res.status(404).json({ error: "Listing not found." });
+    if (!listing || !listing.createdBy || !listing.createdBy._id) {
+      return res.status(404).json({ error: "Listing or its creator not found." });
+    }
 
     // Create message
     const message = new Message({
@@ -51,7 +55,7 @@ router.get("/received", auth, async (req, res) => {
       .populate("user", "email")
       .sort({ createdAt: -1 });
 
-    const filtered = applications.filter((app) => app.listing); // exclude nulls
+    const filtered = applications.filter((app) => app.listing); // exclude null listings
     res.json(filtered);
   } catch (err) {
     console.error("❌ Error fetching received applications:", err);
