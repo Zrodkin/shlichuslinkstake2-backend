@@ -14,7 +14,7 @@ app.use((req, res, next) => {
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://shlichuslinkstake2-frontend-ol96suvt5.vercel.app"
+  "https://shlichuslinkstake2-frontend-1k3wmumi2.vercel.app"
 ];
 
 app.use(cors({
