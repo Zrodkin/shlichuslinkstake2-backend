@@ -19,7 +19,7 @@ const auth = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Find user - CHANGED userId to id to match token payload
+    // Find user - using decoded.id to match our token payload
     const user = await User.findById(decoded.id).select("-password");
     
     if (!user) {
