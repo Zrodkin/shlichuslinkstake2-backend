@@ -99,7 +99,7 @@ mongoose.connect(MONGO_URI)
 
 // === Routes ===
 const authRoutes = require("./routes/auth");
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 const listingRoutes = require("./routes/listings");
 app.use("/api/listings", listingRoutes);

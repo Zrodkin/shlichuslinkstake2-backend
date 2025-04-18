@@ -151,8 +151,8 @@ const authMiddleware = require("../middleware/auth");
 // Get current user
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ msg: "User not found" });
+    // No need to query the database again since req.user already contains the user data
+    const user = req.user;
     res.json(user);
   } catch (err) {
     console.error("Error fetching user:", err);
