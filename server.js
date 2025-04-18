@@ -72,7 +72,7 @@ app.options("/auth/*", cors({
 }));
 
 // === EXPLICIT: Handle OPTIONS for /auth/login ===
-app.options("/auth/login", cors({
+app.options("api/auth/login", cors({
   origin: function (origin, callback) {
     const allowed = allowedOrigins.includes(origin) || (typeof origin === "string" && origin.endsWith(".vercel.app"));
     if (!origin || allowed) return callback(null, true);
