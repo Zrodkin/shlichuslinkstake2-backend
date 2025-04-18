@@ -9,6 +9,7 @@ const listingSchema = new mongoose.Schema({
   endDate: { type: Date },
   volunteerGender: { type: String, enum: ["male", "female"], required: true },
   imageUrl: { type: String },
+  whatsAppNumber: { type: String },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
 });

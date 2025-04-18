@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Listing = require("../models/Listing");
+const User = require("../models/User"); // Add this line to import User model
 const authMiddleware = require("../middleware/auth");
 const upload = require("../middleware/upload"); // Multer for image upload
 
@@ -23,10 +24,17 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
       return res.status(415).json({ msg: "Content-Type must be multipart/form-data" });
     }
 
+    // Get the user's WhatsApp number from their profile
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     const listing = new Listing({
       ...req.body,
       createdBy: req.user.id,
       imageUrl: req.file ? `/uploads/${req.file.filename}` : "",
+      whatsAppNumber: user.whatsAppNumber || "", // Add WhatsApp number from user profile
     });
 
     await listing.save();
